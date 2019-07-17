@@ -1,0 +1,204 @@
+ <!DOCTYPE html>
+<html lang="en-US">
+ <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+ <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
+
+<body>
+    <div ng-app="myApp" style="width:100%;height:100%">
+        <table style="width:100%;height:100%"><tr>
+            <td>Step 1 import data</td>
+            <td>
+                <div ng-controller="myctrl" class="mx-auto">
+                    <input type="file" name="file" class="input" onchange="angular.element(this).scope().uploadFile(this.files)"/>
+                </div>
+            </td>
+        </tr>
+            <tr>
+                <td>
+                    step 2 login
+                </td>
+                <td>
+                    <div ng-controller="appLogon">
+                        <table >
+                            <tr>
+                                <td>username</td>
+                                <td><input type="text" name="username" id="username" value="Caspar"/></td>
+                            </tr>
+                            <tr>
+                                <td>password</td>
+                                <td><input type="password" name="password" id="password" value="1234"/></td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td><input class="btn btn-primary" type="button" onclick="angular.element(this).scope().getDetails(document.getElementById('username').value,document.getElementById('password').value)" value="logon"/></td>
+                            </tr>
+                        </table>
+                        <table id="accountTable">
+                            {% raw %}
+                            <tbody  >
+
+                                <tr ng-repeat="acc in accounts">
+                                    <td>{{acc.accountNumber}}</td>
+                                    <td>{{acc.accountType}}</td>
+                                    <td>{{acc.dateCreated}}</td>
+                                    <td ><input type="button" class="btn btn-primary" value="withdraw" ng-click="withdraw(acc.accountID)"/></td>
+                                    <td ><input type="button" class="btn btn-primary" value="balance" ng-click="balance(acc.accountID)"/></td>
+                                </tr>
+                            </tbody>
+                            {% endraw %}
+                        </table>
+                        <div class="modal fade" id="balanceModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+        <div id="balanceBody" class="modal-body">
+
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+    </div>
+    </div>
+     <div class="modal fade" id="withdrawelModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+        <div id="withdrawelBody" class="modal-body">
+            <table>
+                <tr>
+                    <td>current balance</td>
+                    <td id="lblbalance"></td>
+                </tr>
+                <tr>
+                    <td>withdrawel amount</td>
+                    <td><input type="text" id="txtamount"/></td>
+
+                </tr>
+            </table>
+            <input type="hidden" value="" id="hdnaccount"/>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button id="btnsave" type="button" class="btn btn-primary" ng-click="createTransaction()">Save</button>
+          </div>
+        </div>
+    </div>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Step 3 accounts
+                </td>
+                <td>
+                    <div ng-controller="appActions">
+
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    </div>
+<script>
+    var uploadUrl = 'http://localhost:5000/import'
+    var logon =  'http://localhost:5000/logon'
+    var balance = 'http://localhost:5000/balance'
+    var makeWithDrawel = 'http://localhost:5000/withdraw'
+    var app = angular.module('myApp', []);
+
+    app.controller('myctrl', function($scope, $http){
+  $scope.uploadFile = function(files) {
+    var fd = new FormData();
+    //Take the first selected file
+    fd.append("file", files[0]);
+
+    $http.post(uploadUrl, fd, {
+        withCredentials: false,
+        headers: {'Content-Type': undefined },
+        transformRequest: angular.identity
+    }).success(alert(e)).error( alert(err));
+
+};
+});
+
+    app.controller('appLogon',function($scope, $http){
+        $scope.accounts = []
+        $scope.getDetails = function(user, pass){
+            $http(
+                {
+                    method:'POST',
+                    url:logon,
+                    headers: {'Content-Type': 'application/json' },
+                    data : {'username':user,'password':pass}
+                }
+            ).then(
+                function(obj){
+                $scope.accounts = obj.data.accounts;
+                },function(response){
+                }
+            );
+        };
+        $scope.balance = function(account){
+            $http(
+                {
+                    method:'POST',
+                    url:balance,
+                    headers: {'Content-Type': 'application/json' },
+                    data : {'account':account}
+                }
+            ).then(
+                function(obj){
+                    $("#balanceBody").html('your balance is '+obj.data.balance);
+                    $("#balanceModal").modal();
+                },function(response){
+                }
+            )
+       };
+       $scope.withdraw = function(account){
+        $http(
+                {
+                    method:'POST',
+                    url:balance,
+                    headers: {'Content-Type': 'application/json' },
+                    data : {'account':account}
+                }
+            ).then(
+                function(obj){
+                    $("#lblbalance").html('your balance is '+obj.data.balance);
+                    $("#hdnaccount").val(account);
+                    $("#withdrawelModal").modal();
+                },function(response){
+                }
+            )
+       };
+       $scope.createTransaction = function(){
+        $http(
+                {
+                    method:'POST',
+                    url:makeWithDrawel,
+                    headers: {'Content-Type': 'application/json' },
+                    data : {'account':$("#hdnaccount").val(),'amount':$('#txtamount').val()}
+                }
+            ).then(
+                function(obj){
+                    if(obj.data.error){
+                        $("#lblbalance").html(obj.data.message);
+                        $("#btnsave").prop('disabled',true);
+                    }
+                    else{
+                        $("#withdrawelModal").modal('hide');
+                    }
+                },function(response){
+                }
+            )
+       }
+    });
+</script>
+</body>
+
+</html>
